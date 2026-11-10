@@ -24,6 +24,12 @@
     <string name="error_load">无法连接 dsh web：%1$s</string>
     <string name="error_unauthorized">未登录：请重新配对（地址里的 token 已失效，或该地址未授权）。</string>
     <string name="error_no_browser">没有可打开该链接的浏览器</string>
+    <string name="menu_statusbar">隐藏状态栏</string>
+    <string name="error_not_dsh">这看起来不是 dsh web 页面：请检查地址、端口和协议，或在浏览器里确认后再配对。</string>
+    <string name="error_timeout">加载超时：这个地址没有响应，请检查地址或网络。</string>
+    <string name="error_edit">重新输入地址</string>
+    <string name="error_browser">在浏览器打开</string>
+    <string name="error_startup">无法连接上次保存的地址，请重新输入或扫码配对。</string>
     <string name="menu_reload">重新加载</string>
     <string name="menu_setup">更换服务器…</string>
     <string name="menu_open_browser">在浏览器中打开</string>

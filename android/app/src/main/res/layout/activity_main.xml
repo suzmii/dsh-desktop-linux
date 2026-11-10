@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/window_background">
@@ -92,6 +93,14 @@
                 android:layout_marginTop="10dp"
                 android:text="@string/clear_button" />
 
+            <CheckBox
+                android:id="@+id/statusbar_toggle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/menu_statusbar"
+                android:textColor="@color/setup_text" />
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -130,11 +139,19 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/error_setup"
+                android:id="@+id/error_edit"
                 style="?android:attr/borderlessButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/menu_setup"
+                android:text="@string/error_edit"
+                android:textColor="@color/error_text" />
+
+            <Button
+                android:id="@+id/error_browser"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/error_browser"
                 android:textColor="@color/error_text" />
 
             <Button

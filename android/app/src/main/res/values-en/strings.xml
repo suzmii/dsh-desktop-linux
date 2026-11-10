@@ -24,6 +24,12 @@
     <string name="error_load">Cannot reach dsh web: %1$s</string>
     <string name="error_unauthorized">Not signed in: pair again (the token expired, or this address is not authorised).</string>
     <string name="error_no_browser">No browser available for this link</string>
+    <string name="menu_statusbar">Hide status bar</string>
+    <string name="error_not_dsh">This does not look like dsh web. Check the address, port and scheme, or open it in a browser first.</string>
+    <string name="error_timeout">Loading timed out: the address did not answer. Check it or your network.</string>
+    <string name="error_edit">Edit address</string>
+    <string name="error_browser">Open in browser</string>
+    <string name="error_startup">Cannot reach the saved address. Enter it again or scan the pairing code.</string>
     <string name="menu_reload">Reload</string>
     <string name="menu_setup">Change server…</string>
     <string name="menu_open_browser">Open in browser</string>

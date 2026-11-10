@@ -10,6 +10,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.Menu;
@@ -27,6 +29,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -37,6 +40,11 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
@@ -54,9 +62,26 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_URL = "url";
     private static final String KEY_COOKIE_NAME = "cookieName";
     private static final String KEY_COOKIE_VALUE = "cookieValue";
+    private static final String KEY_HIDE_STATUSBAR = "hideStatusBar";
     private static final int REQUEST_FILE_CHOOSER = 1001;
     private static final int REQUEST_CAMERA = 1002;
     private static final int REQUEST_STORAGE = 1003;
+    /**
+     * Confirms the loaded document really is a rendered dsh web page, not a cached
+     * shell, a wrong host or a captive portal. The rendered check matters: a
+     * cached dsh index without its assets still carries the boot markers.
+     */
+    private static final String PAGE_PROBE_JS =
+            "(function(){try{var r=document.getElementById('root');"
+            + "var t=(document.body.innerText||'').trim();"
+            + "if(r&&r.childElementCount>0&&t.length>20)return 'dsh';"
+            + "var h=document.documentElement.innerHTML;"
+            + "if(h.indexOf('dsh web authentication required')>=0)return 'auth';"
+            + "return 'other';}catch(e){return 'other';}})()";
+    /** Give up on a page that never finishes loading (dead host, cached blank page). */
+    private static final long LOAD_TIMEOUT_MS = 12_000;
+    /** Let the dsh client mount before probing the DOM. */
+    private static final long PROBE_DELAY_MS = 700;
 
     private WebView webView;
     private View setupPanel;
@@ -68,6 +93,16 @@ public class MainActivity extends AppCompatActivity {
     private String baseUrl;
     private ValueCallback<Uri[]> pendingFileCallback;
     private boolean pendingDownloadAfterStorage;
+    /** Whether the system status bar is hidden; tablets default to hidden. */
+    private boolean hideStatusBar;
+    /** True while the saved address is being auto-loaded at startup. */
+    private boolean autoLoadedFromPrefs;
+    /** True once the current target rendered a page successfully. */
+    private boolean loadedOnce;
+    /** True when the main frame failed, so onPageFinished must keep the error UI. */
+    private boolean pageHadError;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private Runnable loadTimeout;
     /** HTTP status of the last main-frame response, so onPageFinished does not hide an error the server answered. */
     private int lastMainFrameStatus;
 
@@ -84,6 +119,9 @@ public class MainActivity extends AppCompatActivity {
 
         configureWebView();
         wireSetupPanel();
+        configureEdgeToEdge();
+        hideStatusBar = readHideStatusBar();
+        applyStatusBarVisibility();
 
         if (savedInstanceState == null && handlePairingIntent(getIntent())) {
             return;
@@ -131,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                pageHadError = false;
                 lastMainFrameStatus = 0;
                 errorBar.setVisibility(View.GONE);
             }
@@ -142,9 +181,16 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) {
-                    showError(getString(R.string.error_load, String.valueOf(error.getDescription())));
+                if (!request.isForMainFrame()) return;
+                pageHadError = true;
+                if (autoLoadedFromPrefs && !loadedOnce) {
+                    // The saved address no longer works: go straight back to the
+                    // pairing screen instead of trapping the user on an error page.
+                    showSetup();
+                    showSetupStatus(getString(R.string.error_startup), true);
+                    return;
                 }
+                showError(getString(R.string.error_load, String.valueOf(error.getDescription())));
             }
 
             @Override
@@ -152,6 +198,7 @@ public class MainActivity extends AppCompatActivity {
                 if (!request.isForMainFrame()) return;
                 lastMainFrameStatus = response.getStatusCode();
                 if (response.getStatusCode() == 401) {
+                    pageHadError = true;
                     showError(getString(R.string.error_unauthorized));
                 }
             }
@@ -214,6 +261,45 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Draw edge to edge and hand the system-bar insets to the root layout, so the
+     * WebView can use the whole screen once the status bar is hidden.
+     */
+    private void configureEdgeToEdge() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        View root = findViewById(R.id.root);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+            Insets bars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+    }
+
+    /** Whether this device is a tablet (sw600dp), where the bar is hidden by default. */
+    private boolean isTablet() {
+        return getResources().getConfiguration().smallestScreenWidthDp >= 600;
+    }
+
+    /** Read the persisted preference, defaulting to the tablet/phone rule. */
+    private boolean readHideStatusBar() {
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        if (prefs.contains(KEY_HIDE_STATUSBAR)) {
+            return prefs.getBoolean(KEY_HIDE_STATUSBAR, isTablet());
+        }
+        return isTablet();
+    }
+
+    /** Hide or show the status bar, leaving a swipe as the way to reveal it. */
+    private void applyStatusBarVisibility() {
+        WindowInsetsControllerCompat controller =
+                WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        if (hideStatusBar) controller.hide(WindowInsetsCompat.Type.statusBars());
+        else controller.show(WindowInsetsCompat.Type.statusBars());
+        ViewCompat.requestApplyInsets(findViewById(R.id.root));
+    }
+
     /** Wire the setup screen's buttons. */
     private void wireSetupPanel() {
         Button connect = findViewById(R.id.connect_button);
@@ -223,8 +309,21 @@ public class MainActivity extends AppCompatActivity {
         scan.setOnClickListener(view -> startScanning());
         Button retry = findViewById(R.id.error_retry);
         retry.setOnClickListener(view -> webView.reload());
-        Button errorSetup = findViewById(R.id.error_setup);
-        errorSetup.setOnClickListener(view -> showSetup());
+        Button errorEdit = findViewById(R.id.error_edit);
+        errorEdit.setOnClickListener(view -> showSetup());
+        Button errorBrowser = findViewById(R.id.error_browser);
+        errorBrowser.setOnClickListener(view -> {
+            String current = webView.getUrl();
+            if (current != null) openExternally(current);
+        });
+        CheckBox statusBarToggle = findViewById(R.id.statusbar_toggle);
+        statusBarToggle.setOnCheckedChangeListener((button, checked) -> {
+            hideStatusBar = checked;
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                    .putBoolean(KEY_HIDE_STATUSBAR, checked)
+                    .apply();
+            applyStatusBarVisibility();
+        });
         clear.setOnClickListener(view -> new AlertDialog.Builder(this)
                 .setTitle(R.string.clear_title)
                 .setMessage(R.string.clear_message)
@@ -266,12 +365,17 @@ public class MainActivity extends AppCompatActivity {
     /** Apply a parsed pairing: install the cookie (if any) and load the target. */
     private void applyPairing(@NonNull Pairing pairing) {
         baseUrl = null;
+        autoLoadedFromPrefs = false;
+        loadedOnce = false;
+        pageHadError = false;
+        lastMainFrameStatus = 0;
         if (pairing.kind == Pairing.KIND_COOKIE) {
             installCookie(pairing.url, pairing.cookieName, pairing.cookieValue);
         }
         setSetupStatusVisible(false);
         setupPanel.setVisibility(View.GONE);
         webView.setVisibility(View.VISIBLE);
+        armLoadTimeout();
         webView.loadUrl(pairing.url);
     }
 
@@ -322,15 +426,48 @@ public class MainActivity extends AppCompatActivity {
         if (cookieName != null && cookieValue != null) installCookie(url, cookieName, cookieValue);
         CookieManager.getInstance().flush();
         baseUrl = url;
+        autoLoadedFromPrefs = true;
+        loadedOnce = false;
+        pageHadError = false;
+        lastMainFrameStatus = 0;
         setupPanel.setVisibility(View.GONE);
         webView.setVisibility(View.VISIBLE);
+        armLoadTimeout();
         webView.loadUrl(url);
+    }
+
+    /** Start a load watchdog; a page that never finishes must not trap the user. */
+    private void armLoadTimeout() {
+        cancelLoadTimeout();
+        loadTimeout = () -> {
+            if (loadedOnce) return;
+            pageHadError = true;
+            if (autoLoadedFromPrefs) {
+                showSetup();
+                showSetupStatus(getString(R.string.error_startup), true);
+            } else {
+                showError(getString(R.string.error_timeout));
+            }
+        };
+        mainHandler.postDelayed(loadTimeout, LOAD_TIMEOUT_MS);
+    }
+
+    /** Drop the pending load watchdog. */
+    private void cancelLoadTimeout() {
+        if (loadTimeout != null) {
+            mainHandler.removeCallbacks(loadTimeout);
+            loadTimeout = null;
+        }
     }
 
     /** Show the pairing screen. */
     private void showSetup() {
+        cancelLoadTimeout();
         setupPanel.setVisibility(View.VISIBLE);
+        webView.setVisibility(View.GONE);
         errorBar.setVisibility(View.GONE);
+        CheckBox toggle = findViewById(R.id.statusbar_toggle);
+        toggle.setChecked(hideStatusBar);
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         String url = prefs.getString(KEY_URL, null);
         if (url != null) urlInput.setText(url);
@@ -339,11 +476,39 @@ public class MainActivity extends AppCompatActivity {
     /** Called for every finished main-frame load. */
     private void onLoaded(String url) {
         if (url == null || !url.startsWith("http")) return;
+        if (pageHadError || lastMainFrameStatus >= 400) return;
+        loadedOnce = true;
+        autoLoadedFromPrefs = false;
         String clean = Pairing.stripToken(url);
         baseUrl = clean;
         setupPanel.setVisibility(View.GONE);
         webView.setVisibility(View.VISIBLE);
-        if (lastMainFrameStatus < 400) errorBar.setVisibility(View.GONE);
+        errorBar.setVisibility(View.GONE);
+        // A cached page or a wrong host can "finish" without an HTTP error. Probe
+        // the document so a non-dsh page never looks connected and never poisons
+        // the saved address.
+        mainHandler.postDelayed(() -> webView.evaluateJavascript(PAGE_PROBE_JS, value -> {
+            String probe = value == null ? "other" : value.replace("\"", "").trim();
+            if ("dsh".equals(probe)) {
+                finishLoaded(clean);
+            } else if ("auth".equals(probe)) {
+                showUnusablePage(getString(R.string.error_unauthorized));
+            } else {
+                showUnusablePage(getString(R.string.error_not_dsh));
+            }
+        }), PROBE_DELAY_MS);
+    }
+
+    /** Persist a confirmed dsh page and remember its session cookie. */
+    private void finishLoaded(String clean) {
+        cancelLoadTimeout();
+        loadedOnce = true;
+        autoLoadedFromPrefs = false;
+        pageHadError = false;
+        baseUrl = clean;
+        setupPanel.setVisibility(View.GONE);
+        webView.setVisibility(View.VISIBLE);
+        errorBar.setVisibility(View.GONE);
         if (clean != null && !clean.equals(getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_URL, null))) {
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_URL, clean).apply();
         }
@@ -352,6 +517,17 @@ public class MainActivity extends AppCompatActivity {
         // later cold start reopens the 401 page.
         rememberCookie(clean);
         CookieManager.getInstance().flush();
+    }
+
+    /** Show the error UI for a page that is not a usable dsh web document. */
+    private void showUnusablePage(String message) {
+        pageHadError = true;
+        if (autoLoadedFromPrefs && !loadedOnce) {
+            showSetup();
+            showSetupStatus(getString(R.string.error_startup), true);
+            return;
+        }
+        showError(message);
     }
 
     /** Record the cookie that a token exchange produced for a later cold start. */
@@ -506,8 +682,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem toggle = menu.findItem(R.id.action_toggle_statusbar);
+        if (toggle != null) toggle.setChecked(hideStatusBar);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
+        if (id == R.id.action_toggle_statusbar) {
+            hideStatusBar = !hideStatusBar;
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                    .putBoolean(KEY_HIDE_STATUSBAR, hideStatusBar)
+                    .apply();
+            applyStatusBarVisibility();
+            invalidateOptionsMenu();
+            return true;
+        }
         if (id == R.id.action_reload) {
             if (webView.getUrl() != null) webView.reload();
             else restore();
@@ -540,6 +732,12 @@ public class MainActivity extends AppCompatActivity {
             webView.goBack();
             return;
         }
+        if (webView.getVisibility() == View.VISIBLE) {
+            // Escape hatch: from the hosted page, Back returns to pairing instead of
+            // exiting, so an unreachable or wrong address is always fixable.
+            showSetup();
+            return;
+        }
         super.onBackPressed();
     }
 
@@ -557,6 +755,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         webView.resumeTimers();
         webView.onResume();
+        applyStatusBarVisibility();
         rememberCookie(webView.getUrl());
     }
 
