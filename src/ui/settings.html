@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>DSH Desktop 设置</title>
+  <style>
+    :root { color-scheme: light dark; --fg: #1b1b1f; --muted: #61616b; --bg: #f6f6f8; --card: #ffffff; --line: #e2e2e8; --accent: #4d6bfe; }
+    @media (prefers-color-scheme: dark) {
+      :root { --fg: #ececf1; --muted: #a0a0ac; --bg: #151517; --card: #1d1d21; --line: #2c2c33; --accent: #7b90ff; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.6 system-ui, -apple-system, "Noto Sans CJK SC", sans-serif; color: var(--fg); background: var(--card); }
+    main { padding: 22px 24px 20px; }
+    h1 { margin: 0 0 4px; font-size: 17px; }
+    .hint { margin: 0 0 18px; color: var(--muted); font-size: 12.5px; }
+    label { display: block; font-weight: 600; margin: 0 0 6px; font-size: 13px; }
+    input[type="url"] { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
+    input[type="url"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .check { display: flex; gap: 9px; align-items: flex-start; margin: 11px 0 0; font-weight: 400; }
+    .check input { margin-top: 3px; }
+    .check span small { display: block; color: var(--muted); font-size: 12px; }
+    .section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .section h2 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+    .candidates { margin: 0; padding: 0; list-style: none; }
+    .candidates li { margin: 0 0 6px; }
+    .candidates button { font: inherit; padding: 5px 9px; border: 1px dashed var(--line); border-radius: 7px; background: none; color: var(--fg); cursor: pointer; word-break: break-all; text-align: left; }
+    .candidates button:hover { border-color: var(--accent); }
+    .message { min-height: 20px; margin: 12px 0 0; font-size: 12.5px; color: var(--muted); white-space: pre-line; }
+    .message.error { color: #d4380d; }
+    .row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+    button { font: inherit; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
+    button.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+    button:hover { filter: brightness(1.08); }
+    code { font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); word-break: break-all; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>连接设置</h1>
+    <p class="hint">壳只做窗口与鉴权，不启动、不修改 dsh，也不写 <code>~/.dsh</code>。</p>
+
+    <label for="url">dsh web 地址</label>
+    <input id="url" type="url" placeholder="留空 = 每次启动自动探测（默认先试 http://127.0.0.1:3080/）" spellcheck="false">
+    <p class="hint">填 dsh 启动时打印的地址（可以带 <code>?token=…</code>，保存时会被去掉）。</p>
+
+    <div class="section">
+      <h2>启动与窗口</h2>
+      <label class="check"><input type="checkbox" id="autoAuth"> <span>自动鉴权 <small>从 <code id="credentials">~/.dsh/.credentials.yaml</code> 读取持久化的 browser-session secret，为本机 dsh 直接签会话 cookie；失败时再提示粘贴 token 链接。</small></span></label>
+      <label class="check"><input type="checkbox" id="closeToTray"> <span>关闭窗口时最小化到托盘 <small>取消勾选后点 × 直接退出。</small></span></label>
+      <label class="check"><input type="checkbox" id="launchAtLogin"> <span>开机自启（隐藏启动） <small>写入 <code>~/.config/autostart/dsh-desktop.desktop</code>。</small></span></label>
+      <label class="check"><input type="checkbox" id="startHidden"> <span>手动启动时也隐藏窗口 <small>只保留托盘图标，点击托盘显示。</small></span></label>
+    </div>
+
+    <div class="section">
+      <h2>已发现的本地 dsh web</h2>
+      <ul class="candidates" id="candidates"><li><code>点「自动探测」扫描本机监听端口</code></li></ul>
+    </div>
+
+    <p class="message" id="message"></p>
+
+    <div class="row">
+      <button id="detect">自动探测</button>
+      <button id="cancel">取消</button>
+      <button class="primary" id="save">保存并连接</button>
+    </div>
+  </main>
+  <script>
+    const els = {
+      url: document.getElementById('url'),
+      autoAuth: document.getElementById('autoAuth'),
+      closeToTray: document.getElementById('closeToTray'),
+      launchAtLogin: document.getElementById('launchAtLogin'),
+      startHidden: document.getElementById('startHidden'),
+      candidates: document.getElementById('candidates'),
+      message: document.getElementById('message'),
+      credentials: document.getElementById('credentials'),
+    }
+    const showMessage = (text, isError = false) => {
+      els.message.textContent = text
+      els.message.classList.toggle('error', isError)
+    }
+    window.dshShell.getState().then((state) => {
+      const config = state.config
+      els.url.value = config.url ?? ''
+      els.autoAuth.checked = config.autoAuth
+      els.closeToTray.checked = config.closeToTray
+      els.launchAtLogin.checked = config.launchAtLogin
+      els.startHidden.checked = config.startHidden
+      els.credentials.textContent = state.credentialsPath
+      if (state.credentialsAvailable === false) {
+        showMessage('没有读到 browser-session secret，自动鉴权会退回到「粘贴 dsh web 打印的 URL」。', false)
+      }
+    })
+    document.getElementById('detect').addEventListener('click', async () => {
+      showMessage('正在探测本地监听端口…')
+      const result = await window.dshShell.detect()
+      els.candidates.innerHTML = ''
+      if (result.candidates.length === 0) {
+        els.candidates.innerHTML = '<li><code>没有发现 dsh web：请先在终端运行 dsh web</code></li>'
+        showMessage(result.error ?? '没有发现正在监听且回应 dsh 的端口。', true)
+        return
+      }
+      for (const candidate of result.candidates) {
+        const li = document.createElement('li')
+        const button = document.createElement('button')
+        button.textContent = candidate
+        button.addEventListener('click', () => { els.url.value = candidate })
+        li.append(button)
+        els.candidates.append(li)
+      }
+      if (els.url.value === '' && result.candidates.length === 1) els.url.value = result.candidates[0]
+      showMessage(`发现 ${result.candidates.length} 个候选地址。`)
+    })
+    document.getElementById('save').addEventListener('click', async () => {
+      const value = {
+        url: els.url.value.trim(),
+        autoAuth: els.autoAuth.checked,
+        closeToTray: els.closeToTray.checked,
+        launchAtLogin: els.launchAtLogin.checked,
+        startHidden: els.startHidden.checked,
+      }
+      const result = await window.dshShell.saveSettings(value)
+      if (!result.ok) showMessage(result.error ?? '保存失败', true)
+    })
+    document.getElementById('cancel').addEventListener('click', () => window.dshShell.closePanel())
+  </script>
+</body>
+</html>

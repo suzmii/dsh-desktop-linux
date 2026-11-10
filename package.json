@@ -1,0 +1,84 @@
+{
+  "name": "dsh-desktop-linux",
+  "productName": "DSH Desktop (Linux)",
+  "version": "0.1.0",
+  "description": "A lightweight Linux desktop shell that hosts an already-running dsh web server (attach mode, no bundled runtime).",
+  "type": "module",
+  "main": "src/main.js",
+  "author": {
+    "name": "Suzumiya",
+    "email": "suzumiya@localhost"
+  },
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "start:hidden": "electron . --hidden",
+    "test": "node --test tests/",
+    "sync-assets": "node scripts/sync-assets.mjs",
+    "dist": "electron-builder --linux AppImage deb",
+    "dist:dir": "electron-builder --linux --dir"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "dev.dsh.desktop-linux",
+    "productName": "DSH Desktop",
+    "copyright": "Copyright © 2026 Suzumiya",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
+      "executableName": "dsh-desktop",
+      "icon": "build/icon.png",
+      "synopsis": "Desktop shell for an already-running dsh web server",
+      "description": "Hosts the dsh web UI in its own window and connects to the dsh web server you started yourself. Ships no runtime of its own.",
+      "desktop": {
+        "entry": {
+          "Name": "DSH Desktop",
+          "Comment": "Connect to a running dsh web server",
+          "StartupWMClass": "dsh-desktop",
+          "Categories": "Development;Utility;"
+        }
+      },
+      "syncDesktopName": true
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0"
+      ]
+    },
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ]
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "homepage": "https://github.com/Suzumiya/dsh-desktop-linux",
+  "desktopName": "dsh-desktop.desktop"
+}

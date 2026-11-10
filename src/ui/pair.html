@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+  <title>手机 / 平板配对</title>
+  <style>
+    :root { color-scheme: light dark; --fg: #1b1b1f; --muted: #61616b; --bg: #f6f6f8; --card: #ffffff; --line: #e2e2e8; --accent: #4d6bfe; }
+    @media (prefers-color-scheme: dark) {
+      :root { --fg: #ececf1; --muted: #a0a0ac; --bg: #151517; --card: #1d1d21; --line: #2c2c33; --accent: #7b90ff; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.6 system-ui, -apple-system, "Noto Sans CJK SC", sans-serif; color: var(--fg); background: var(--card); }
+    main { padding: 22px 24px 20px; }
+    h1 { margin: 0 0 4px; font-size: 17px; }
+    p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    code { font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+    input { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
+    input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .step { margin: 14px 0 0; }
+    .step h2 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+    ol { margin: 0; padding-left: 20px; color: var(--muted); font-size: 12.5px; }
+    .qr-wrap { display: none; margin: 16px 0 4px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; width: fit-content; }
+    .qr-wrap.show { display: block; }
+    .qr-wrap svg { display: block; width: 300px; height: 300px; }
+    .url-line { margin: 8px 0 0; font-size: 11.5px; color: var(--muted); word-break: break-all; }
+    .note { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+    .message { min-height: 18px; margin: 8px 0 0; font-size: 12.5px; color: #d4380d; }
+    .row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    button { font: inherit; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
+    button.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+    button:hover { filter: brightness(1.08); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>手机 / 平板配对</h1>
+    <p>Android 上不需要另装壳：手机浏览器直接打开你正在跑的 dsh web，再「添加到主屏幕」就是全屏应用，商店里的 PWA 安装方式即可。</p>
+
+    <div class="step">
+      <h2>1. 粘贴 dsh 启动时打印的地址</h2>
+      <input id="url" type="url" placeholder="http://10.126.126.2:47827/?token=…" spellcheck="false" autofocus>
+      <p class="url-line">在终端里启动 dsh web 的那一行 <code>dsh web: …</code> 里就有；这个 token 只用于换取手机自己的 30 天会话 cookie。</p>
+    </div>
+
+    <div class="qr-wrap" id="qrWrap"><div id="qr"></div></div>
+    <p class="url-line" id="cleanUrl"></p>
+    <p class="message" id="message"></p>
+
+    <div class="step">
+      <h2>2. 手机 / 平板操作</h2>
+      <ol>
+        <li>用系统相机或扫码功能扫描二维码，在浏览器中打开。</li>
+        <li>页面跳转到不带 token 的地址后，用浏览器菜单「添加到主屏幕 / 安装应用」。</li>
+        <li>之后从桌面图标启动即可，cookie 有效期约 30 天；过期后重新配对一次。</li>
+      </ol>
+      <div class="note">
+        手机需要能访问电脑的地址（同一局域网，或已做端口转发）。壳本身不代理流量；<code>dsh web --host</code> 绑定的就是手机要连的地址。
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="copy">复制链接</button>
+      <button class="primary" id="generate">生成二维码</button>
+      <button id="close">关闭</button>
+    </div>
+  </main>
+  <script>
+    const input = document.getElementById('url')
+    const message = document.getElementById('message')
+    const qrWrap = document.getElementById('qrWrap')
+    const qr = document.getElementById('qr')
+    const cleanUrl = document.getElementById('cleanUrl')
+    let current = null
+    document.getElementById('generate').addEventListener('click', async () => {
+      message.textContent = ''
+      const result = await window.dshShell.generatePairing(input.value.trim())
+      if (!result.ok) {
+        message.textContent = result.error ?? '生成失败'
+        qrWrap.classList.remove('show')
+        current = null
+        return
+      }
+      qr.innerHTML = result.svg
+      qrWrap.classList.add('show')
+      cleanUrl.textContent = `配对后长期地址：${result.cleanUrl}`
+      current = result.url
+    })
+    document.getElementById('copy').addEventListener('click', async () => {
+      if (current === null) { message.textContent = '先生成二维码'; return }
+      await window.dshShell.copyText(current)
+      message.textContent = '已复制配对链接'
+    })
+    document.getElementById('close').addEventListener('click', () => window.dshShell.closePanel())
+    input.addEventListener('keydown', (event) => { if (event.key === 'Enter') document.getElementById('generate').click() })
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>需要 dsh web 的访问凭据</title>
+  <style>
+    :root { color-scheme: light dark; --fg: #1b1b1f; --muted: #61616b; --bg: #f6f6f8; --card: #ffffff; --line: #e2e2e8; --accent: #4d6bfe; }
+    @media (prefers-color-scheme: dark) {
+      :root { --fg: #ececf1; --muted: #a0a0ac; --bg: #151517; --card: #1d1d21; --line: #2c2c33; --accent: #7b90ff; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.6 system-ui, -apple-system, "Noto Sans CJK SC", sans-serif; color: var(--fg); background: var(--card); }
+    main { padding: 22px 24px 20px; }
+    h1 { margin: 0 0 6px; font-size: 17px; }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+    code { font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+    pre { margin: 8px 0 14px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font-size: 12.5px; }
+    input { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
+    input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .message { min-height: 20px; margin: 10px 0 0; font-size: 12.5px; color: #d4380d; white-space: pre-line; }
+    .row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    button { font: inherit; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
+    button.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+    button:hover { filter: brightness(1.08); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>需要 dsh web 的访问凭据</h1>
+    <p>自动鉴权没有通过（通常是 <code>cookieMaxAgeDays</code> 被改小，或凭据记录被替换）。把 dsh 启动时打印的那行地址粘进来即可——它带一次性 <code>?token=…</code>：</p>
+    <pre>dsh web: http://127.0.0.1:3080/?token=xxxx</pre>
+    <p>地址只在内存中使用一次：token 换签 cookie 后，壳会记住不带 token 的干净地址。</p>
+    <input id="url" type="url" placeholder="http://127.0.0.1:3080/?token=…" spellcheck="false" autofocus>
+    <p class="message" id="message"></p>
+    <div class="row">
+      <button id="cancel">取消</button>
+      <button class="primary" id="submit">验证并连接</button>
+    </div>
+  </main>
+  <script>
+    const input = document.getElementById('url')
+    const message = document.getElementById('message')
+    document.getElementById('submit').addEventListener('click', async () => {
+      message.textContent = ''
+      const value = input.value.trim()
+      if (value === '') { message.textContent = '请粘贴 dsh 打印的完整地址。'; return }
+      const result = await window.dshShell.submitAuth(value)
+      if (!result.ok) message.textContent = result.error ?? '验证失败'
+    })
+    document.getElementById('cancel').addEventListener('click', () => window.dshShell.closePanel())
+    input.addEventListener('keydown', (event) => { if (event.key === 'Enter') document.getElementById('submit').click() })
+  </script>
+</body>
+</html>
