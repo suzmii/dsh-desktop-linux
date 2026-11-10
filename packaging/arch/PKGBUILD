@@ -8,7 +8,7 @@
 # The shell bundles no dsh runtime; it attaches to a dsh web server that the
 # user starts themselves (see the repository README).
 pkgname=dsh-desktop-linux
-pkgver=0.1.1
+pkgver=0.1.2
 pkgrel=1
 pkgdesc='Desktop shell that hosts an already-running dsh web server (attach mode, no bundled dsh)'
 arch=('x86_64')
