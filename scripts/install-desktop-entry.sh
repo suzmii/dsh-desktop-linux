@@ -23,7 +23,8 @@ if [[ "${1:-}" == "--remove" ]]; then
   exit 0
 fi
 
-APPIMAGE="$(find "$ROOT/dist" -maxdepth 1 -name '*.AppImage' -print -quit 2>/dev/null || true)"
+APPIMAGE="$(find "$ROOT/dist" -maxdepth 1 -name 'dsh-desktop-*.AppImage' -print -quit 2>/dev/null || true)"
+APPIMAGE="${APPIMAGE:-$(find "$ROOT/dist" -maxdepth 1 -name '*.AppImage' -print -quit 2>/dev/null || true)}"
 if [[ -z "$APPIMAGE" ]]; then
   echo "error: no AppImage found under $ROOT/dist — run 'npm run dist' first" >&2
   exit 1

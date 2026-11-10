@@ -4,6 +4,8 @@
 把 `dsh web` 已经在跑的那个 Web UI 装进一个原生窗口，补上托盘、开机自启、断线自动重连、窗口/缩放记忆，
 再给手机/平板生成一张配对二维码。
 
+仓库：<https://github.com/suzmii/dsh-desktop-linux> · 安装包：GitHub Releases。
+
 ## 为什么不是官方的 `apps/desktop`
 
 官方仓库确实带一个 Electron 桌面端，但它与「复用已经跑起来的 dsh」方向相反：
@@ -36,13 +38,14 @@
 
 ```sh
 npm run dist                       # 产出 dist/*.AppImage 与 deb
-chmod +x "dist/DSH Desktop-0.1.0.AppImage"
-"./dist/DSH Desktop-0.1.0.AppImage"
+chmod +x dist/dsh-desktop-0.1.0-linux-x86_64.AppImage
+./dist/dsh-desktop-0.1.0-linux-x86_64.AppImage
 scripts/install-desktop-entry.sh   # 复制到 ~/.local/bin 并写入应用菜单
 ```
 
-若系统没有 FUSE2，可 `./DSH\ Desktop-0.1.0.AppImage --appimage-extract-and-run` 或在
-`scripts/install-desktop-entry.sh` 的 Exec 里加该参数。
+安装包也发布在 <https://github.com/suzmii/dsh-desktop-linux/releases>。
+若系统没有 FUSE2，可加 `--appimage-extract-and-run`，或在 `scripts/install-desktop-entry.sh`
+生成的 `.desktop` 的 Exec 里加该参数。
 
 ### deb（Debian / Ubuntu）
 

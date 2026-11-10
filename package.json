@@ -74,7 +74,10 @@
         "from": "build/icon.png",
         "to": "icon.png"
       }
-    ]
+    ],
+    "appImage": {
+      "artifactName": "dsh-desktop-${version}-linux-${arch}.${ext}"
+    }
   },
   "dependencies": {
     "qrcode": "^1.5.4"
