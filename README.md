@@ -149,6 +149,15 @@ adb install -r dist/dsh-desktop-android-0.1.0.apk
 限制：APK 使用 debug 证书签名（适合自用验收，发布前应换私钥）；WebView 没有 Notification API；
 `blob:` 下载不会交给系统下载器；Android 上仍然需要电脑跑着 dsh web。
 
+| 首次启动（配对页） | 配对后（手机竖屏） |
+|---|---|
+| ![配对页](docs/android-setup.png) | ![会话](docs/android-session.png) |
+
+模拟器实测（Android 15 / Pixel 1080×1920 / KVM，headless）：安装 APK → token URL 深链配对 → 渲染出 dsh →
+`force-stop` 后冷启动直接进入（会话 cookie 已落盘）→ 横屏 1920×1080 布局正常。这轮实测修掉了两个真问题：
+`onResume` 早于页面加载时 `CookieManager.getCookie(null)` 的 NPE 崩溃，以及首次 token 换 cookie 后没有
+`flush()` 导致重启回到 401 页。
+
 ## 跨平台状态（如实）
 
 | 平台 | 状态 |

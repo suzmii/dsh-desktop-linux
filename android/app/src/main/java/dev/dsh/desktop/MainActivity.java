@@ -68,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
     private String baseUrl;
     private ValueCallback<Uri[]> pendingFileCallback;
     private boolean pendingDownloadAfterStorage;
+    /** HTTP status of the last main-frame response, so onPageFinished does not hide an error the server answered. */
+    private int lastMainFrameStatus;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -128,6 +130,12 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                lastMainFrameStatus = 0;
+                errorBar.setVisibility(View.GONE);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 onLoaded(url);
             }
@@ -142,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onReceivedHttpError(WebView view, WebResourceRequest request, android.webkit.WebResourceResponse response) {
                 if (!request.isForMainFrame()) return;
+                lastMainFrameStatus = response.getStatusCode();
                 if (response.getStatusCode() == 401) {
                     showError(getString(R.string.error_unauthorized));
                 }
@@ -311,6 +320,7 @@ public class MainActivity extends AppCompatActivity {
         }
         urlInput.setText(url);
         if (cookieName != null && cookieValue != null) installCookie(url, cookieName, cookieValue);
+        CookieManager.getInstance().flush();
         baseUrl = url;
         setupPanel.setVisibility(View.GONE);
         webView.setVisibility(View.VISIBLE);
@@ -333,14 +343,21 @@ public class MainActivity extends AppCompatActivity {
         baseUrl = clean;
         setupPanel.setVisibility(View.GONE);
         webView.setVisibility(View.VISIBLE);
-        errorBar.setVisibility(View.GONE);
+        if (lastMainFrameStatus < 400) errorBar.setVisibility(View.GONE);
         if (clean != null && !clean.equals(getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_URL, null))) {
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_URL, clean).apply();
         }
+        // The token exchange happens in the WebView, so the cookie only exists
+        // after the page loads: remember it and flush it to disk now, otherwise a
+        // later cold start reopens the 401 page.
+        rememberCookie(clean);
+        CookieManager.getInstance().flush();
     }
 
     /** Record the cookie that a token exchange produced for a later cold start. */
     private void rememberCookie(String url) {
+        // onResume runs before the first page exists; getCookie(null) throws on Android.
+        if (url == null || url.isEmpty()) return;
         String cookie = CookieManager.getInstance().getCookie(url);
         if (cookie == null) return;
         for (String part : cookie.split(";")) {
@@ -529,6 +546,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        rememberCookie(webView.getUrl());
+        CookieManager.getInstance().flush();
         webView.onPause();
         webView.pauseTimers();
     }
