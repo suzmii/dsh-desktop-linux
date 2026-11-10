@@ -836,7 +836,7 @@ async function runSmoke() {
       await new Promise(resolve => setTimeout(resolve, 1500))
       if (panelKind === 'pair') {
         await panel.webContents.executeJavaScript(
-          "document.getElementById('url').value = 'http://10.126.126.2:47827/?token=smoketest'; document.getElementById('generate').click();",
+          "document.getElementById('url').value = 'http://192.168.1.10:47827/?token=smoketest'; document.getElementById('generate').click();",
           true,
         )
         await new Promise(resolve => setTimeout(resolve, 1200))

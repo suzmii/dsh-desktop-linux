@@ -4,8 +4,6 @@
 把 `dsh web` 已经在跑的那个 Web UI 装进一个原生窗口，补上托盘、开机自启、断线自动重连、窗口/缩放记忆，
 再给手机/平板生成一张配对二维码。
 
-![桌面窗口](docs/screenshot-desktop.png)
-
 ## 为什么不是官方的 `apps/desktop`
 
 官方仓库确实带一个 Electron 桌面端，但它与「复用已经跑起来的 dsh」方向相反：
@@ -75,7 +73,7 @@ sudo pacman -U dsh-desktop-linux-0.1.0-1-x86_64.pkg.tar.zst
 并且**已经在跑** Web 服务，例如：
 
 ```sh
-dsh web --host 10.126.126.2 --port 47827
+dsh web --host 192.168.1.10 --port 47827
 # 或默认
 dsh web
 ```
@@ -114,15 +112,12 @@ Android / iOS 上 Electron 跑不了，也不需要另写 App：dsh 自带的就
 4. 之后从主屏图标启动即可，cookie 约 30 天后过期再配对一次。
 
 前提是手机能连到电脑：`dsh web --host <局域网地址>` 绑定的就是手机要访问的地址（当前示例是
-`10.126.126.2:47827`）；不在同一网段就自己做端口转发。
+`192.168.1.10:47827`）；不在同一网段就自己做端口转发。
 
-| 配对面板 | 手机 390×844 | 平板 1024×768 |
-|---|---|---|
-| ![配对](docs/screenshot-pair.png) | ![手机](docs/screenshot-phone.png) | ![平板](docs/screenshot-tablet.png) |
-
-三张图都是真实运行中验证的：配对面板由壳的 `DSH_DESKTOP_SMOKE_PANEL=pair` 冒烟模式实际渲染并断言
-`QR_RENDERED`；手机/平板是同一台机器的 dsh web 在对应视口宽度下的渲染（窄屏自动切成底部输入栏 +
-折叠侧栏，平板保留侧栏）。壳本身在 390×844 视口同样能正常承载（`npm start -- --size=390x844`）。
+验证方式（仓库不附带真实会话截图）：配对面板用壳的 `DSH_DESKTOP_SMOKE_PANEL=pair` 冒烟模式实际渲染并
+断言 `QR_RENDERED`；手机/平板布局是在 390×844 与 1024×768 视口下打开同一台机器的 dsh web 实测
+（窄屏自动切成底部输入栏 + 折叠侧栏，平板保留侧栏）；壳本身也在这两个视口下能做完整 attach
+（`npm start -- --size=390x844`）。
 
 ## 跨平台状态（如实）
 

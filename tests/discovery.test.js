@@ -10,7 +10,7 @@ import {
 } from '../src/discovery.js'
 
 const SS_OUTPUT = [
-  'LISTEN 0      511     10.126.126.2:47827 0.0.0.0:*    users:(("node-MainThread",pid=825874,fd=21))',
+  'LISTEN 0      511     192.168.1.10:47827 0.0.0.0:*    users:(("node-MainThread",pid=825874,fd=21))',
   'LISTEN 0      50         127.0.0.1:30001 0.0.0.0:*    users:(("rustrover",pid=217067,fd=394))',
   'LISTEN 0      4096       0.0.0.0:5355      0.0.0.0:*    users:(("systemd-resolve",pid=900,fd=12))',
   'LISTEN 0      511            [::1]:3080       [::]:*    users:(("node",pid=4242,fd=7))',
@@ -19,7 +19,7 @@ const SS_OUTPUT = [
 
 test('parseSsListeners extracts host, port, pid and process', () => {
   const listeners = parseSsListeners(SS_OUTPUT)
-  assert.deepEqual(listeners[0], { host: '10.126.126.2', port: 47827, pid: 825874, process: 'node-MainThread' })
+  assert.deepEqual(listeners[0], { host: '192.168.1.10', port: 47827, pid: 825874, process: 'node-MainThread' })
   assert.deepEqual(listeners[1], { host: '127.0.0.1', port: 30001, pid: 217067, process: 'rustrover' })
   assert.deepEqual(listeners[2], { host: '127.0.0.1', port: 5355, pid: 900, process: 'systemd-resolve' })
   assert.deepEqual(listeners[3], { host: '::1', port: 3080, pid: 4242, process: 'node' })
@@ -44,7 +44,7 @@ test('looksLikeDshWeb recognises real dsh web command lines', () => {
     'web',
     '--no-open',
     '--host',
-    '10.126.126.2',
+    '192.168.1.10',
   ]), true)
   assert.equal(looksLikeDshWeb([
     'node',
