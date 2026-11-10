@@ -122,13 +122,40 @@ Android / iOS 上 Electron 跑不了，也不需要另写 App：dsh 自带的就
 （窄屏自动切成底部输入栏 + 折叠侧栏，平板保留侧栏）；壳本身也在这两个视口下能做完整 attach
 （`npm start -- --size=390x844`）。
 
+## Android（手机 / 平板）
+
+Android 上 Electron 跑不了，所以这是一个独立的 WebView 客户端，**同样不带 dsh 运行时**：它只承载你在
+电脑上已经跑起来的 dsh web。手机/平板布局由 dsh 自己的响应式前端负责。
+
+```sh
+scripts/build-android.sh          # 首次会自动装 JDK17/SDK/Gradle 到 ~/.local/share/dsh-android
+# 产物：dist/dsh-desktop-android-0.1.0.apk（约 2.6 MB，debug 证书签名，minSdk 24 / targetSdk 35）
+adb install -r dist/dsh-desktop-android-0.1.0.apk
+# 或把 APK 传到手机，允许「安装未知来源应用」后直接安装
+```
+
+配对（手机首次使用）：
+
+1. 电脑上打开桌面壳 → 文件 → 手机 / 平板配对…，粘贴 dsh 启动时打印的地址（可带 `?token=`），生成二维码；
+   地址不在手边时可以从 systemd journal 取最后一条：
+   `journalctl --user -u dsh-web -o cat | grep -oE 'https?://[^[:space:]]+[?&]token=[^[:space:]]+' | tail -1`
+2. 手机打开 DSH Desktop → 扫描二维码（或把地址粘进输入框）→ 连接。
+3. 首次加载用 token 换取本机 30 天会话 cookie，之后直接打开即可。
+
+应用内支持：文件上传选择器、下载交给系统下载管理器、外链走系统浏览器、菜单里的重新加载 / 更换服务器 /
+在浏览器打开 / 记住当前会话；以及 `dshpair://pair?url=…&name=…&value=…` 深链（给桌面壳以后生成
+免 token 的 cookie 配对码用，客户端已能解析 `dsh-pair/1` 文本载荷）。
+
+限制：APK 使用 debug 证书签名（适合自用验收，发布前应换私钥）；WebView 没有 Notification API；
+`blob:` 下载不会交给系统下载器；Android 上仍然需要电脑跑着 dsh web。
+
 ## 跨平台状态（如实）
 
 | 平台 | 状态 |
 |---|---|
 | Linux (X11 / Wayland) | 完整：发现、鉴权、托ray、自启、打包、真机验证 |
 | macOS / Windows | Electron 代码本身可运行，但发现逻辑（`ss` + `/proc`）是 Linux 专用；托盘、XDG 自启也未适配。只能靠设置里填地址 + 默认 3080，**未验证** |
-| Android / iOS | 用 dsh 自带 PWA + 配对二维码（本仓库提供二维码生成），不提供原生壳 |
+| Android | 原生 WebView 客户端（`android/`，APK 见上节）；iOS 无原生壳，用 dsh 自带 PWA + 配对二维码 |
 | WSL | 未验证 |
 
 如果之后要「三端原生壳」，建议另立项目复用本仓库的鉴权/配对思路，而不是把 Android 塞进 Electron。

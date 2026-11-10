@@ -6,3 +6,8 @@ packaging/arch/*.pkg.tar.zst
 packaging/arch/*.pkg.tar.xz
 packaging/arch/pkg/
 packaging/arch/src/
+android/local.properties
+android/.gradle/
+android/app/build/
+android/build/
+*.apk

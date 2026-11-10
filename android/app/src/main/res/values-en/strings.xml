@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DSH Desktop</string>
+    <string name="setup_title">Connect to dsh web</string>
+    <string name="setup_hint">This app does not start dsh and bundles no runtime; it only hosts the dsh web server you already run on your computer.</string>
+    <string name="setup_url_label">dsh web URL</string>
+    <string name="setup_url_placeholder">http://192.168.1.10:47827/</string>
+    <string name="setup_empty">Enter the dsh web URL</string>
+    <string name="setup_invalid">Not recognised: needs an http(s) URL or a pairing code from the desktop shell</string>
+    <string name="setup_tips">Tip: in the Linux desktop shell open “File → Phone / tablet pairing…” to show a QR code, or paste the tokenized URL printed by dsh web. The token is only used once to obtain a 30-day session cookie on this device.</string>
+    <string name="scan_button">Scan QR code</string>
+    <string name="connect_button">Connect</string>
+    <string name="clear_button">Clear saved session</string>
+    <string name="clear_title">Clear session</string>
+    <string name="clear_message">This clears the saved URL and cookie on this device; you will need to pair again.</string>
+    <string name="clear_confirm">Clear</string>
+    <string name="clear_done">Cleared</string>
+    <string name="scan_prompt">Point at the pairing QR code from the desktop shell</string>
+    <string name="camera_denied">Camera permission denied; paste the URL instead.</string>
+    <string name="storage_granted_retry">Storage permission granted, tap the download again.</string>
+    <string name="cookie_saved">Current session cookie remembered</string>
+    <string name="download_started">Download started</string>
+    <string name="error_download">Download failed</string>
+    <string name="error_load">Cannot reach dsh web: %1$s</string>
+    <string name="error_unauthorized">Not signed in: pair again (the token expired, or this address is not authorised).</string>
+    <string name="error_no_browser">No browser available for this link</string>
+    <string name="menu_reload">Reload</string>
+    <string name="menu_setup">Change server…</string>
+    <string name="menu_open_browser">Open in browser</string>
+    <string name="menu_remember_cookie">Remember session</string>
+</resources>

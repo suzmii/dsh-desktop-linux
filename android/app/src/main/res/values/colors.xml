@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="window_background">#FFFFFFFF</color>
+    <color name="setup_text">#FF1B1B1F</color>
+    <color name="setup_hint">#FF61616B</color>
+    <color name="setup_error">#FFB3261E</color>
+    <color name="error_background">#FFB3261E</color>
+    <color name="error_text">#FFFFFFFF</color>
+</resources>

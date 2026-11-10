@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DSH Desktop</string>
+    <string name="setup_title">连接 dsh web</string>
+    <string name="setup_hint">这个应用不启动 dsh，也不带运行时；它只承载你已经在电脑上跑起来的 dsh web。</string>
+    <string name="setup_url_label">dsh web 地址</string>
+    <string name="setup_url_placeholder">http://192.168.1.10:47827/</string>
+    <string name="setup_empty">请输入 dsh web 地址</string>
+    <string name="setup_invalid">无法识别：需要 http(s) 地址，或桌面壳生成的配对码</string>
+    <string name="setup_tips">提示：在 Linux 桌面壳里打开「文件 → 手机 / 平板配对…」生成二维码；也可以直接粘贴 dsh 启动时打印的、带 ?token= 的地址。地址里的 token 只用于换取本机 30 天会话 cookie。</string>
+    <string name="scan_button">扫描二维码</string>
+    <string name="connect_button">连接</string>
+    <string name="clear_button">清除已保存会话</string>
+    <string name="clear_title">清除会话</string>
+    <string name="clear_message">会清除本机保存的地址与 cookie，之后需要重新配对。</string>
+    <string name="clear_confirm">清除</string>
+    <string name="clear_done">已清除</string>
+    <string name="scan_prompt">对准桌面壳生成的配对二维码</string>
+    <string name="camera_denied">没有相机权限，无法扫码；可以改为粘贴地址。</string>
+    <string name="storage_granted_retry">已获得存储权限，请重新点击下载。</string>
+    <string name="cookie_saved">已记住当前会话 cookie</string>
+    <string name="download_started">已开始下载</string>
+    <string name="error_download">下载失败</string>
+    <string name="error_load">无法连接 dsh web：%1$s</string>
+    <string name="error_unauthorized">未登录：请重新配对（地址里的 token 已失效，或该地址未授权）。</string>
+    <string name="error_no_browser">没有可打开该链接的浏览器</string>
+    <string name="menu_reload">重新加载</string>
+    <string name="menu_setup">更换服务器…</string>
+    <string name="menu_open_browser">在浏览器中打开</string>
+    <string name="menu_remember_cookie">记住当前会话</string>
+</resources>
