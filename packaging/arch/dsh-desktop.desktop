@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=DSH Desktop
+Comment=Connect to a running dsh web server
+Exec=dsh-desktop %U
+TryExec=dsh-desktop
+Icon=dsh-desktop
+Terminal=false
+StartupWMClass=dsh-desktop
+Categories=Development;Utility;
+Keywords=dsh;deepseek;harness;

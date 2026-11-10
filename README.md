@@ -30,6 +30,7 @@
 | 断线重连 | 找不到服务时显示本地说明页并每 8 秒重试；连上后自动进入 |
 | 桌面细节 | 窗口位置/大小/缩放记忆、外链走系统浏览器、下载走保存对话框、单实例、日志 |
 | 手机 / 平板 | 见下方「手机与平板」：不需要 APK，配对二维码 + Chrome PWA |
+| 发行包 | AppImage、deb、Arch pacman 包（`makepkg` 产出 `.pkg.tar.zst`），外加一键写应用菜单的脚本 |
 
 ## 安装
 
@@ -50,6 +51,23 @@ scripts/install-desktop-entry.sh   # 复制到 ~/.local/bin 并写入应用菜�
 ```sh
 sudo apt install ./dist/dsh-desktop-linux_0.1.0_amd64.deb
 ```
+
+### pacman（Arch Linux，原生包）
+
+`packaging/arch/PKGBUILD` 把 electron-builder 的 `dist/linux-unpacked` 重新打成标准 Arch 包
+（装到 `/opt/dsh-desktop-linux`，带 `/usr/bin/dsh-desktop` 启动器、`.desktop` 与 hicolor 图标）：
+
+```sh
+npm run dist                                   # 先生成 dist/linux-unpacked
+cd packaging/arch && makepkg -f                # 产出 dsh-desktop-linux-0.1.0-1-x86_64.pkg.tar.zst
+sudo pacman -U dsh-desktop-linux-0.1.0-1-x86_64.pkg.tar.zst
+```
+
+- 包信息：压缩后 ~114 MiB、安装后 ~276 MiB，运行时依赖见 PKGBUILD（gtk3、nss、libsecret、alsa-lib 等，不依赖 Node/dsh）。
+- 卸载：`sudo pacman -Rns dsh-desktop-linux`。
+- 与 AppImage 的菜单项会重复，切换前先 `scripts/install-desktop-entry.sh --remove`。
+- 只打了 `x86_64`。arm64 需先 `npx electron-builder --linux --arm64`，再把 PKGBUILD 的 `arch` 改成 `('aarch64')` 重打。
+- 这是本机重打包，不是 AUR 包：没有 pkgbuild 源拉取、没有签名；要上 AUR 需要把源码/产物放到可校验的 `source` 并补 `sha256sums`。
 
 ### 首次运行前
 
@@ -123,7 +141,8 @@ Android / iOS 上 Electron 跑不了，也不需要另写 App：dsh 自带的就
 - dsh 换端口 / 换网卡地址后，旧 cookie 失效，需要重新配对或粘贴新 token 地址。
 - 手机端 cookie 由手机浏览器持有；PWA 无法注入 cookie，所以配对必须粘贴一次带 token 的地址。
 - 未做系统托盘的环境下点 × 会真正退出（壳会检测托盘是否创建成功）。
-- 未签名、未做应用内更新；AppImage 依赖 FUSE2 或 `--appimage-extract-and-run`。
+- 三种发行包都未签名、未做应用内更新；AppImage 依赖 FUSE2 或 `--appimage-extract-and-run`。
+- pacman 包只覆盖 x86_64，且从本机 `dist/linux-unpacked` 重打包，不经 AUR。
 - Electron 在 Wayland 下可能打印 `--ozone-platform=wayland not compatible with Vulkan` 警告，不影响使用。
 - `package.json` 的 `homepage` 是占位地址，发布前请改成实际仓库地址。
 
@@ -140,6 +159,7 @@ npm run sync-assets           # 从已安装的 dsh 前端同步图标
 DSH_DESKTOP_SMOKE_SHOT=/tmp/shot.png npm start    # 冒烟：连上后截图并退出
 DSH_DESKTOP_SMOKE_PANEL=pair DSH_DESKTOP_SMOKE_SHOT=/tmp/shot.png npm start   # 连上后渲染配对二维码并断言
 npm run dist                  # AppImage + deb
+cd packaging/arch && makepkg -f  # Arch pacman 包
 ```
 
 冒烟模式会读取运行中的 dsh web，写一张截图并输出 `{ok,title,url,text}`，退出码即成败，可用于回归。

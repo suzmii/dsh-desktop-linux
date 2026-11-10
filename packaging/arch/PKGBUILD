@@ -1,0 +1,73 @@
+# Maintainer: Suzumiya <suzumiya@localhost>
+#
+# Repackages the electron-builder output into a native Arch package:
+#
+#   npm run dist                     # from the repository root
+#   cd packaging/arch && makepkg -f  # then: sudo pacman -U dsh-desktop-linux-*.pkg.tar.zst
+#
+# The shell bundles no dsh runtime; it attaches to a dsh web server that the
+# user starts themselves (see the repository README).
+pkgname=dsh-desktop-linux
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Desktop shell that hosts an already-running dsh web server (attach mode, no bundled dsh)'
+arch=('x86_64')
+url='https://github.com/Suzumiya/dsh-desktop-linux'
+license=('MIT')
+depends=(
+  'gtk3'
+  'libnotify'
+  'nss'
+  'libxss'
+  'libxtst'
+  'at-spi2-core'
+  'libsecret'
+  'libcups'
+  'libdrm'
+  'libxkbcommon'
+  'pango'
+  'cairo'
+  'gdk-pixbuf2'
+  'alsa-lib'
+  'xdg-utils'
+  'hicolor-icon-theme'
+)
+optdepends=(
+  'libappindicator-gtk3: tray icon on desktops without StatusNotifierItem support'
+)
+# Electron ships prebuilt binaries: stripping them breaks the sandbox/crashpad.
+options=(!strip !debug)
+source=()
+sha256sums=()
+
+package() {
+  local appdir="$startdir/../../dist/linux-unpacked"
+
+  if [[ ! -x "$appdir/dsh-desktop" ]]; then
+    printf 'error: missing %s — run "npm run dist" in the repository root first\n' "$appdir" >&2
+    exit 1
+  fi
+
+  install -d "$pkgdir/opt/$pkgname"
+  cp -a "$appdir/." "$pkgdir/opt/$pkgname/"
+
+  install -d "$pkgdir/usr/bin"
+  cat > "$pkgdir/usr/bin/dsh-desktop" <<'WRAPPER'
+#!/bin/sh
+# Native launcher for the Electron app installed below /opt.
+exec /opt/dsh-desktop-linux/dsh-desktop "$@"
+WRAPPER
+  chmod 755 "$pkgdir/usr/bin/dsh-desktop"
+
+  install -Dm644 "$startdir/dsh-desktop.desktop" \
+    "$pkgdir/usr/share/applications/dsh-desktop.desktop"
+  install -Dm644 "$startdir/../../build/icon.png" \
+    "$pkgdir/usr/share/icons/hicolor/512x512/apps/dsh-desktop.png"
+  install -Dm644 "$startdir/../../LICENSE" \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+  # Runtime needs the unpacked icon (tray/window) next to the app bundle.
+  if [[ ! -f "$pkgdir/opt/$pkgname/resources/icon.png" ]]; then
+    printf 'warning: resources/icon.png missing from the packaged app\n' >&2
+  fi
+}
