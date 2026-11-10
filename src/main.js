@@ -818,6 +818,7 @@ async function runSmoke() {
   const ok = await attach({ reason: 'smoke' })
   await new Promise(resolve => setTimeout(resolve, Number(process.env.DSH_DESKTOP_SMOKE_DELAY_MS ?? 6000)))
   let text = null
+  let panelKind = null
   try {
     const image = await state.win.webContents.capturePage()
     await mkdir(dirname(shot), { recursive: true })
@@ -826,13 +827,39 @@ async function runSmoke() {
   } catch (error) {
     await log(`smoke capture failed: ${String(error)}`)
   }
+  const requestedPanel = process.env.DSH_DESKTOP_SMOKE_PANEL
+  if (requestedPanel === 'settings' || requestedPanel === 'pair' || requestedPanel === 'auth') {
+    panelKind = requestedPanel
+    try {
+      openPanel(requestedPanel)
+      const panel = state.panel
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      if (panelKind === 'pair') {
+        await panel.webContents.executeJavaScript(
+          "document.getElementById('url').value = 'http://10.126.126.2:47827/?token=smoketest'; document.getElementById('generate').click();",
+          true,
+        )
+        await new Promise(resolve => setTimeout(resolve, 1200))
+        text = await panel.webContents.executeJavaScript(
+          "document.querySelector('#qr svg') !== null ? 'QR_RENDERED' : 'QR_MISSING'",
+          true,
+        )
+      }
+      const panelImage = await panel.webContents.capturePage()
+      await writeFile(shot.replace(/\.png$/u, `-${requestedPanel}.png`), panelImage.toPNG())
+    } catch (error) {
+      text = `panel failed: ${String(error)}`
+      await log(text)
+    }
+  }
   process.stdout.write(`${JSON.stringify({
     ok,
     title: state.win?.getTitle() ?? null,
     url: state.win?.webContents.getURL() ?? null,
     text,
+    panel: panelKind,
   })}\n`)
-  app.exit(ok ? 0 : 1)
+  app.exit(ok && !String(text).startsWith('panel failed') ? 0 : 1)
 }
 
 /** Boot the shell. */
