@@ -93,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
     private String baseUrl;
     private ValueCallback<Uri[]> pendingFileCallback;
     private boolean pendingDownloadAfterStorage;
-    /** Whether the system status bar is hidden; tablets default to hidden. */
+    /** Whether the system bars are hidden; tablets default to a fullscreen shell. */
     private boolean hideStatusBar;
     /** True while the saved address is being auto-loaded at startup. */
     private boolean autoLoadedFromPrefs;
@@ -269,8 +269,9 @@ public class MainActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         View root = findViewById(R.id.root);
         ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
-            Insets bars = insets.getInsets(
-                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
+                    | WindowInsetsCompat.Type.displayCutout()
+                    | WindowInsetsCompat.Type.ime());
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return WindowInsetsCompat.CONSUMED;
         });
@@ -295,8 +296,10 @@ public class MainActivity extends AppCompatActivity {
         WindowInsetsControllerCompat controller =
                 WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-        if (hideStatusBar) controller.hide(WindowInsetsCompat.Type.statusBars());
-        else controller.show(WindowInsetsCompat.Type.statusBars());
+        int systemBars = WindowInsetsCompat.Type.statusBars()
+                | WindowInsetsCompat.Type.navigationBars();
+        if (hideStatusBar) controller.hide(systemBars);
+        else controller.show(systemBars);
         ViewCompat.requestApplyInsets(findViewById(R.id.root));
     }
 
