@@ -1,7 +1,7 @@
 {
   "name": "dsh-desktop-linux",
   "productName": "DSH Desktop (Linux)",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A lightweight Linux desktop shell that hosts an already-running dsh web server (attach mode, no bundled runtime).",
   "type": "module",
   "main": "src/main.js",
@@ -73,6 +73,10 @@
       {
         "from": "build/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "build/tray",
+        "to": "tray"
       }
     ],
     "appImage": {

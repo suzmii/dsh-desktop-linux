@@ -26,6 +26,7 @@
 | 自动鉴权 | 读 `$DSH_HOME/.credentials.yaml` 里 `client-connection/browser-session` 的 32 字节 secret，按 dsh 的 `v1` cookie 格式 HMAC 签名；secret 只读，不复制 |
 | 失败回退 | cookie 被拒时弹出「粘贴 dsh 启动时打印的 `?token=` 地址」，换取手机/桌面自己的 30 天 cookie，token 不落盘 |
 | 托盘常驻 | 点 × 最小化到托盘（首次提示），托盘菜单可显示/隐藏、重连、设置、配对、开机自启、退出 |
+| 图标 | 透明背景鲸鱼（无白底方块）：应用菜单、任务栏、Android 启动器；托盘按明暗主题自动切换黑/白两版 |
 | 开机自启 | 写 `$XDG_CONFIG_HOME/autostart/dsh-desktop.desktop`，以 `--hidden` 启动，只留托盘 |
 | 断线重连 | 找不到服务时显示本地说明页并每 8 秒重试；连上后自动进入 |
 | 桌面细节 | 窗口位置/大小/缩放记忆、外链走系统浏览器、下载走保存对话框、单实例、日志 |
@@ -38,8 +39,8 @@
 
 ```sh
 npm run dist                       # 产出 dist/*.AppImage 与 deb
-chmod +x dist/dsh-desktop-0.1.0-linux-x86_64.AppImage
-./dist/dsh-desktop-0.1.0-linux-x86_64.AppImage
+chmod +x dist/dsh-desktop-0.1.1-linux-x86_64.AppImage
+./dist/dsh-desktop-0.1.1-linux-x86_64.AppImage
 scripts/install-desktop-entry.sh   # 复制到 ~/.local/bin 并写入应用菜单
 ```
 
@@ -50,7 +51,7 @@ scripts/install-desktop-entry.sh   # 复制到 ~/.local/bin 并写入应用菜�
 ### deb（Debian / Ubuntu）
 
 ```sh
-sudo apt install ./dist/dsh-desktop-linux_0.1.0_amd64.deb
+sudo apt install ./dist/dsh-desktop-linux_0.1.1_amd64.deb
 ```
 
 ### pacman（Arch Linux，原生包）
@@ -60,8 +61,8 @@ sudo apt install ./dist/dsh-desktop-linux_0.1.0_amd64.deb
 
 ```sh
 npm run dist                                   # 先生成 dist/linux-unpacked
-cd packaging/arch && makepkg -f                # 产出 dsh-desktop-linux-0.1.0-1-x86_64.pkg.tar.zst
-sudo pacman -U dsh-desktop-linux-0.1.0-1-x86_64.pkg.tar.zst
+cd packaging/arch && makepkg -f                # 产出 dsh-desktop-linux-0.1.1-1-x86_64.pkg.tar.zst
+sudo pacman -U dsh-desktop-linux-0.1.1-1-x86_64.pkg.tar.zst
 ```
 
 - 包信息：压缩后 ~114 MiB、安装后 ~276 MiB，运行时依赖见 PKGBUILD（gtk3、nss、libsecret、alsa-lib 等，不依赖 Node/dsh）。
@@ -129,8 +130,8 @@ Android 上 Electron 跑不了，所以这是一个独立的 WebView 客户端�
 
 ```sh
 scripts/build-android.sh          # 首次会自动装 JDK17/SDK/Gradle 到 ~/.local/share/dsh-android
-# 产物：dist/dsh-desktop-android-0.1.0.apk（约 2.6 MB，debug 证书签名，minSdk 24 / targetSdk 35）
-adb install -r dist/dsh-desktop-android-0.1.0.apk
+# 产物：dist/dsh-desktop-android-0.1.1.apk（约 2.6 MB，debug 证书签名，minSdk 24 / targetSdk 35）
+adb install -r dist/dsh-desktop-android-0.1.1.apk
 # 或把 APK 传到手机，允许「安装未知来源应用」后直接安装
 ```
 

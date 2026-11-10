@@ -8,7 +8,7 @@
 # The shell bundles no dsh runtime; it attaches to a dsh web server that the
 # user starts themselves (see the repository README).
 pkgname=dsh-desktop-linux
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc='Desktop shell that hosts an already-running dsh web server (attach mode, no bundled dsh)'
 arch=('x86_64')
@@ -61,13 +61,18 @@ WRAPPER
 
   install -Dm644 "$startdir/dsh-desktop.desktop" \
     "$pkgdir/usr/share/applications/dsh-desktop.desktop"
-  install -Dm644 "$startdir/../../build/icon.png" \
-    "$pkgdir/usr/share/icons/hicolor/512x512/apps/dsh-desktop.png"
+  for size in 48 64 128 256 512; do
+    install -Dm644 "$startdir/../../build/icon.png" \
+      "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/dsh-desktop.png"
+  done
   install -Dm644 "$startdir/../../LICENSE" \
     "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 
-  # Runtime needs the unpacked icon (tray/window) next to the app bundle.
+  # Runtime needs the unpacked icon and tray variants next to the app bundle.
   if [[ ! -f "$pkgdir/opt/$pkgname/resources/icon.png" ]]; then
     printf 'warning: resources/icon.png missing from the packaged app\n' >&2
+  fi
+  if [[ ! -f "$pkgdir/opt/$pkgname/resources/tray/tray-dark.png" ]]; then
+    printf 'warning: resources/tray missing from the packaged app\n' >&2
   fi
 }

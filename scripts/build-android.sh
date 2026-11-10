@@ -91,11 +91,11 @@ say "building $VARIANT APK"
 if [[ "$VARIANT" == "debug" ]]; then
   "$GRADLE/bin/gradle" "${GRADLE_ARGS[@]}" assembleDebug
   APK="$ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
-  NAME="dsh-desktop-android-0.1.0-debug.apk"
+  NAME="dsh-desktop-android-0.1.1-debug.apk"
 else
   "$GRADLE/bin/gradle" "${GRADLE_ARGS[@]}" assembleRelease
   APK="$ROOT/android/app/build/outputs/apk/release/app-release.apk"
-  NAME="dsh-desktop-android-0.1.0.apk"
+  NAME="dsh-desktop-android-0.1.1.apk"
 fi
 
 mkdir -p "$ROOT/dist"

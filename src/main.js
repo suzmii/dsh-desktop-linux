@@ -7,7 +7,7 @@
  * else (tray, autostart, reconnect, zoom/bounds memory) is shell-local state
  * under `$XDG_CONFIG_HOME/dsh-desktop-linux`.
  */
-import { BrowserWindow, Menu, Notification, app, clipboard, dialog, ipcMain, nativeImage, screen, session, shell as electronShell } from 'electron'
+import { BrowserWindow, Menu, Notification, app, clipboard, dialog, ipcMain, nativeImage, nativeTheme, screen, session, shell as electronShell } from 'electron'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -27,6 +27,16 @@ const here = dirname(fileURLToPath(import.meta.url))
 const projectRoot = join(here, '..')
 const uiDirectory = join(here, 'ui')
 const iconPath = app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(projectRoot, 'build', 'icon.png')
+const trayDirectory = app.isPackaged ? join(process.resourcesPath, 'tray') : join(projectRoot, 'build', 'tray')
+
+/**
+ * Tray icons are 22 px and must stay readable on both light and dark panels; the
+ * dsh frontend ships the whale in both ink colours, so pick the matching variant.
+ * @returns {string} Absolute PNG path for the current theme.
+ */
+function trayIconPath() {
+  return join(trayDirectory, nativeTheme.shouldUseDarkColors ? 'tray-light.png' : 'tray-dark.png')
+}
 
 /** Retry interval while no dsh web server answers. */
 const RETRY_INTERVAL_MS = 8000
@@ -569,7 +579,7 @@ function refreshShellChrome() {
 function createShellTray() {
   try {
     state.tray = createTray({
-      iconPath,
+      iconPath: trayIconPath(),
       actions: {
         isWindowVisible,
         showWindow,
@@ -582,6 +592,13 @@ function createShellTray() {
         launchAtLogin: state.config.launchAtLogin,
         setLaunchAtLogin: (enabled) => { void toggleAutostart(enabled) },
       },
+    })
+    nativeTheme.on('updated', () => {
+      try {
+        state.tray?.tray.setImage(trayIconPath())
+      } catch (error) {
+        void log(`tray icon theme update failed: ${String(error)}`)
+      }
     })
   } catch (error) {
     state.tray = null
